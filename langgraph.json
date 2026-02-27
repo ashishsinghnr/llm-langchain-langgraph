@@ -1,0 +1,12 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent_tools": "./studio_graphs.py:agent_tools",
+    "support_router": "./studio_graphs.py:support_router",
+    "agentic_rag": "./studio_graphs.py:agentic_rag",
+    "human_in_the_loop": "./studio_graphs.py:human_in_the_loop",
+    "orchestrator_worker": "./studio_graphs.py:orchestrator_worker",
+    "evaluator_optimizer": "./studio_graphs.py:evaluator_optimizer"
+  },
+  "env": ".env"
+}

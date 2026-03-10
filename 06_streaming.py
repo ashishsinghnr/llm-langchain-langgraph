@@ -13,11 +13,9 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 06_streaming.py
 """
 
-import time
-from config import get_openai_llm
+from config import get_openai_llm, run_with_retry
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from openai import RateLimitError
 
 import newrelic.agent
 
@@ -98,15 +96,7 @@ def example_collect_stream():
 # ===========================================================================
 
 def safe_run(fn):
-    for attempt in range(3):
-        try:
-            fn()
-            return
-        except RateLimitError:
-            wait = 30 * (attempt + 1)
-            print(f"\n  [Rate limited — waiting {wait}s]")
-            time.sleep(wait)
-    print("  [Skipped — rate limit]")
+    run_with_retry(lambda: fn())
 
 
 app = newrelic.agent.register_application(timeout=30)

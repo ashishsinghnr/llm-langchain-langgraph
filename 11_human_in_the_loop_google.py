@@ -27,11 +27,9 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 11_human_in_the_loop_google.py
 """
 
-import time
 import uuid
 from typing import TypedDict, Literal
-from config import get_google_llm
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
+from config import get_google_llm, run_with_retry
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, END, START
@@ -208,16 +206,7 @@ def run_scenario(label: str, query: str, human_decision: dict | None = None):
 
 
 def safe_run(label: str, query: str, human_decision: dict | None = None):
-    for attempt in range(3):
-        try:
-            run_scenario(label, query, human_decision)
-            return
-        except ChatGoogleGenerativeAIError as e:
-            print(f"\n  [Error: {e}]")
-            wait = 30 * (attempt + 1)
-            print(f"  [Retrying in {wait}s]")
-            time.sleep(wait)
-    print("  [Skipped — rate limit]")
+    run_with_retry(lambda: run_scenario(label, query, human_decision))
 
 
 nr_app = newrelic.agent.register_application(timeout=30)

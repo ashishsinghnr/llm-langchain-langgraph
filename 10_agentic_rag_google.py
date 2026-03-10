@@ -24,9 +24,7 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 10_agentic_rag_google.py
 """
 
-import time
-from config import get_google_llm, get_embeddings
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
+from config import get_google_llm, get_embeddings, run_with_retry
 from langchain_core.tools import tool
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -97,11 +95,19 @@ def search_docs(query: str) -> str:
     these topics. Do NOT use this for general knowledge questions."""
     docs = retriever.invoke(query)
     if not docs:
-        return "No relevant documents found."
+        return (
+            "Status: NO_RESULTS\n"
+            "Summary: No documents matched the query.\n"
+            "Next: Try broader search terms or rephrase the question."
+        )
     results = []
     for i, doc in enumerate(docs, 1):
         results.append(f"[{i}] {doc.page_content}")
-    return "\n\n".join(results)
+    return (
+        f"Status: OK\n"
+        f"Summary: Found {len(docs)} relevant document(s).\n\n"
+        + "\n\n".join(results)
+    )
 
 
 # ===========================================================================
@@ -135,16 +141,7 @@ def run_query(question: str):
 
 
 def safe_run(question: str):
-    for attempt in range(3):
-        try:
-            run_query(question)
-            return
-        except ChatGoogleGenerativeAIError as e:
-            print(f"\n  [Error: {e}]")
-            wait = 30 * (attempt + 1)
-            print(f"  [Retrying in {wait}s]")
-            time.sleep(wait)
-    print("  [Skipped — rate limit]")
+    run_with_retry(lambda: run_query(question))
 
 
 nr_app = newrelic.agent.register_application(timeout=30)

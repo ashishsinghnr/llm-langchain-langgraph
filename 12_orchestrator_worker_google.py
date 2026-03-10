@@ -26,12 +26,10 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 12_orchestrator_worker_google.py
 """
 
-import time
 import operator
 from typing import TypedDict, Annotated
 from pydantic import BaseModel, Field
-from config import get_google_llm
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
+from config import get_google_llm, run_with_retry
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, END, START
@@ -184,16 +182,7 @@ def run_topic(topic: str):
 
 
 def safe_run(topic: str):
-    for attempt in range(3):
-        try:
-            run_topic(topic)
-            return
-        except ChatGoogleGenerativeAIError as e:
-            print(f"\n  [Error: {e}]")
-            wait = 30 * (attempt + 1)
-            print(f"  [Retrying in {wait}s]")
-            time.sleep(wait)
-    print("  [Skipped — rate limit]")
+    run_with_retry(lambda: run_topic(topic))
 
 
 nr_app = newrelic.agent.register_application(timeout=30)

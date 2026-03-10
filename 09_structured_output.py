@@ -19,12 +19,10 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 09_structured_output.py
 """
 
-import time
 from typing import Literal
 from pydantic import BaseModel, Field
-from config import get_openai_llm
+from config import get_openai_llm, invoke_with_retry
 from langchain_core.prompts import ChatPromptTemplate
-from openai import RateLimitError
 
 import newrelic.agent
 
@@ -58,22 +56,6 @@ class TeamRoster(BaseModel):
     members: list[Person] = Field(description="List of team members")
     size: int = Field(description="Number of people on the team")
 
-
-# ===========================================================================
-# Step 2: Retry helper
-# ===========================================================================
-
-def invoke_with_retry(runnable, input_data, max_retries=3):
-    """Invoke a LangChain runnable with retry on rate-limit errors."""
-    for attempt in range(max_retries):
-        try:
-            return runnable.invoke(input_data)
-        except RateLimitError:
-            wait = 30 * (attempt + 1)
-            print(f"  [Rate limited — waiting {wait}s before retry {attempt + 1}/{max_retries}]")
-            time.sleep(wait)
-    print("  [Max retries reached, skipping this call]")
-    return None
 
 
 # ===========================================================================

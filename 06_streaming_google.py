@@ -12,11 +12,9 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 06_streaming_google.py
 """
 
-import time
-from config import get_google_llm
+from config import get_google_llm, run_with_retry
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
 
 import newrelic.agent
 
@@ -97,16 +95,7 @@ def example_collect_stream():
 # ===========================================================================
 
 def safe_run(fn):
-    for attempt in range(3):
-        try:
-            fn()
-            return
-        except ChatGoogleGenerativeAIError as e:
-            print(f"\n  [Error: {e}]")
-            wait = 30 * (attempt + 1)
-            print(f"  [Retrying in {wait}s]")
-            time.sleep(wait)
-    print("  [Skipped — rate limit]")
+    run_with_retry(lambda: fn())
 
 
 app = newrelic.agent.register_application(timeout=30)

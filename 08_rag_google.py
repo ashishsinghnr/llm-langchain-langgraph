@@ -20,9 +20,7 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 08_rag_google.py
 """
 
-import time
-from config import get_google_llm, get_embeddings
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
+from config import get_google_llm, get_embeddings, run_with_retry
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.vectorstores import InMemoryVectorStore
@@ -144,16 +142,7 @@ def run_query(question: str):
 
 
 def safe_run(question: str):
-    for attempt in range(3):
-        try:
-            run_query(question)
-            return
-        except ChatGoogleGenerativeAIError as e:
-            print(f"\n  [Error: {e}]")
-            wait = 30 * (attempt + 1)
-            print(f"  [Retrying in {wait}s]")
-            time.sleep(wait)
-    print("  [Skipped — rate limit]")
+    run_with_retry(lambda: run_query(question))
 
 
 nr_app = newrelic.agent.register_application(timeout=30)

@@ -19,13 +19,12 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 04_agent_tools.py
 """
 
-import time
+import ast
 import math
 from datetime import datetime
-from config import get_openai_llm
+from config import get_openai_llm, run_with_retry
 from langchain_core.tools import tool
 from langchain.agents import create_agent
-from openai import RateLimitError
 
 import newrelic.agent
 
@@ -37,6 +36,26 @@ llm = get_openai_llm(temperature=0)
 # ---------------------------------------------------------------------------
 # Each tool needs a clear docstring — the LLM reads it to decide when to use it.
 
+_SAFE_NAMES = {"sqrt": math.sqrt, "pow": pow, "abs": abs, "round": round}
+_ALLOWED_AST_NODES = (
+    ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Call, ast.Name,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod, ast.FloorDiv,
+    ast.USub, ast.UAdd,
+)
+
+
+def _safe_eval(expression: str) -> str:
+    """Evaluate a math expression using AST validation (no raw eval)."""
+    tree = ast.parse(expression, mode="eval")
+    for node in ast.walk(tree):
+        if not isinstance(node, _ALLOWED_AST_NODES):
+            raise ValueError(f"Disallowed expression element: {type(node).__name__}")
+        if isinstance(node, ast.Name) and node.id not in _SAFE_NAMES:
+            raise ValueError(f"Unknown function: {node.id}")
+    code = compile(tree, "<calc>", "eval")
+    return str(eval(code, {"__builtins__": {}}, _SAFE_NAMES))  # noqa: S307
+
+
 @tool
 def calculate(expression: str) -> str:
     """Evaluate a math expression and return the result.
@@ -44,12 +63,14 @@ def calculate(expression: str) -> str:
     division, exponents, square roots, etc.
     Examples: "2 + 2", "sqrt(144)", "15 * 3.14", "2 ** 10"
     """
-    allowed = {"sqrt": math.sqrt, "pow": pow, "abs": abs, "round": round}
     try:
-        result = eval(expression, {"__builtins__": {}}, allowed)
-        return str(result)
+        return f"Status: OK\nResult: {_safe_eval(expression)}"
     except Exception as e:
-        return f"Error: {e}"
+        return (
+            f"Status: ERROR\nError: {e}\n"
+            "Next: Check syntax — use operators (+, -, *, /, **) "
+            "and functions sqrt(), pow(), abs(), round()."
+        )
 
 
 @tool
@@ -66,7 +87,10 @@ def word_analyzer(text: str) -> str:
     words = len(text.split())
     chars = len(text)
     sentences = text.count(".") + text.count("!") + text.count("?")
-    return f"Words: {words}, Characters: {chars}, Sentences: {sentences}"
+    return (
+        f"Status: OK\n"
+        f"Words: {words}\nCharacters: {chars}\nSentences: {sentences}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -92,18 +116,11 @@ def run_question(question: str):
     print(f"\n{'=' * 60}")
     print(f"Question: {question}")
     print("=" * 60)
-    for attempt in range(3):
-        try:
-            result = agent.invoke({"messages": [("human", question)]})
-            # The last message in the list is the agent's final answer
-            final = result["messages"][-1]
-            print(f"\nFinal Answer: {final.content}")
-            return
-        except RateLimitError:
-            wait = 30 * (attempt + 1)
-            print(f"  [Rate limited — waiting {wait}s]")
-            time.sleep(wait)
-    print("  [Skipped — rate limit]")
+    def _run():
+        result = agent.invoke({"messages": [("human", question)]})
+        final = result["messages"][-1]
+        print(f"\nFinal Answer: {final.content}")
+    run_with_retry(_run)
 
 
 app = newrelic.agent.register_application(timeout=30)

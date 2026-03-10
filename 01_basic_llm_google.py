@@ -10,28 +10,12 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 01_basic_llm_google.py
 """
 
-import time
-from config import get_google_llm
+from config import get_google_llm, invoke_with_retry
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
 
 import newrelic.agent
 
 llm = get_google_llm(temperature=0.7)
-
-
-def invoke_with_retry(runnable, input_data, max_retries=3):
-    """Invoke a LangChain runnable with retry on rate-limit errors."""
-    for attempt in range(max_retries):
-        try:
-            return runnable.invoke(input_data)
-        except ChatGoogleGenerativeAIError as e:
-            print(f"  [Error: {e}]")
-            wait = 30 * (attempt + 1)
-            print(f"  [Retrying in {wait}s]")
-            time.sleep(wait)
-    print("  [Max retries reached, skipping this call]")
-    return None
 
 
 # Register with collector and create a transaction for this script

@@ -10,9 +10,7 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 05_multi_agent_google.py
 """
 
-import time
-from config import get_google_llm
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
+from config import get_google_llm, run_with_retry
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain_core.output_parsers import StrOutputParser
@@ -55,8 +53,12 @@ def search_knowledge(query: str) -> str:
     query_lower = query.lower()
     for key, info in knowledge.items():
         if key in query_lower:
-            return info
-    return f"No specific knowledge found for '{query}'. Try: python, langchain, or agents."
+            return f"Status: OK\nSummary: Found information on '{key}'.\n\n{info}"
+    return (
+        f"Status: NO_RESULTS\n"
+        f"Summary: No knowledge found for '{query}'.\n"
+        "Next: Try searching for 'python', 'langchain', or 'agents'."
+    )
 
 
 @tool
@@ -70,8 +72,12 @@ def get_statistics(topic: str) -> str:
     topic_lower = topic.lower()
     for key, info in stats.items():
         if key in topic_lower:
-            return info
-    return "No statistics available for this topic."
+            return f"Status: OK\nSummary: Statistics for '{key}'.\n\n{info}"
+    return (
+        "Status: NO_RESULTS\n"
+        f"Summary: No statistics available for '{topic}'.\n"
+        "Next: Try topics: 'python', 'langchain', or 'agents'."
+    )
 
 
 @tool
@@ -172,16 +178,7 @@ def run_multi_agent(question: str):
 # ===========================================================================
 
 def safe_run(question: str):
-    for attempt in range(3):
-        try:
-            run_multi_agent(question)
-            return
-        except ChatGoogleGenerativeAIError as e:
-            wait = 30 * (attempt + 1)
-            print(f"  [Error: {e}]")
-            print(f"  [Retrying in {wait}s]")
-            time.sleep(wait)
-    print("  [Skipped — rate limit]")
+    run_with_retry(lambda: run_multi_agent(question))
 
 
 app = newrelic.agent.register_application(timeout=30)

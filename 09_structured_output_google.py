@@ -16,13 +16,10 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 09_structured_output_google.py
 """
 
-import time
 from typing import Literal
 from pydantic import BaseModel, Field
-from config import get_google_llm
+from config import get_google_llm, invoke_with_retry
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
-
 import newrelic.agent
 
 llm = get_google_llm(temperature=0)
@@ -55,23 +52,6 @@ class TeamRoster(BaseModel):
     members: list[Person] = Field(description="List of team members")
     size: int = Field(description="Number of people on the team")
 
-
-# ===========================================================================
-# Step 2: Retry helper
-# ===========================================================================
-
-def invoke_with_retry(runnable, input_data, max_retries=3):
-    """Invoke a LangChain runnable with retry on errors."""
-    for attempt in range(max_retries):
-        try:
-            return runnable.invoke(input_data)
-        except ChatGoogleGenerativeAIError as e:
-            wait = 30 * (attempt + 1)
-            print(f"  [Error: {e}]")
-            print(f"  [Retrying in {wait}s — attempt {attempt + 1}/{max_retries}]")
-            time.sleep(wait)
-    print("  [Max retries reached, skipping this call]")
-    return None
 
 
 # ===========================================================================

@@ -10,31 +10,15 @@ Run with New Relic:
   NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python 03_memory_chat_google.py
 """
 
-import time
-from config import get_google_llm
+from config import get_google_llm, invoke_with_retry
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
-
 import newrelic.agent
 
 llm = get_google_llm(temperature=0.7)
 
-
-def invoke_with_retry(runnable, input_data, max_retries=3, **kwargs):
-    """Invoke a LangChain runnable with retry on rate-limit errors."""
-    for attempt in range(max_retries):
-        try:
-            return runnable.invoke(input_data, **kwargs)
-        except ChatGoogleGenerativeAIError as e:
-            wait = 30 * (attempt + 1)
-            print(f"  [Error: {e}]")
-            print(f"  [Retrying in {wait}s — attempt {attempt + 1}/{max_retries}]")
-            time.sleep(wait)
-    print("  [Max retries reached, skipping this call]")
-    return None
 
 
 # ---------------------------------------------------------------------------

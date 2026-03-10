@@ -15,6 +15,7 @@ Usage:
   Then open Studio:   https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
 """
 
+import ast
 import math
 import operator
 from typing import TypedDict, Literal, Annotated
@@ -40,6 +41,26 @@ llm_creative = get_openai_llm(temperature=0.7)
 # ═══════════════════════════════════════════════════════════════════════
 # Chat Mode — ask it math questions, current time, text analysis
 
+_SAFE_NAMES = {"sqrt": math.sqrt, "pow": pow, "abs": abs, "round": round}
+_ALLOWED_AST_NODES = (
+    ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Call, ast.Name,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod, ast.FloorDiv,
+    ast.USub, ast.UAdd,
+)
+
+
+def _safe_eval(expression: str) -> str:
+    """Evaluate a math expression using AST validation (no raw eval)."""
+    tree = ast.parse(expression, mode="eval")
+    for node in ast.walk(tree):
+        if not isinstance(node, _ALLOWED_AST_NODES):
+            raise ValueError(f"Disallowed expression element: {type(node).__name__}")
+        if isinstance(node, ast.Name) and node.id not in _SAFE_NAMES:
+            raise ValueError(f"Unknown function: {node.id}")
+    code = compile(tree, "<calc>", "eval")
+    return str(eval(code, {"__builtins__": {}}, _SAFE_NAMES))  # noqa: S307
+
+
 @tool
 def calculate(expression: str) -> str:
     """Evaluate a math expression and return the result.
@@ -47,12 +68,14 @@ def calculate(expression: str) -> str:
     division, exponents, square roots, etc.
     Examples: "2 + 2", "sqrt(144)", "15 * 3.14", "2 ** 10"
     """
-    allowed = {"sqrt": math.sqrt, "pow": pow, "abs": abs, "round": round}
     try:
-        result = eval(expression, {"__builtins__": {}}, allowed)
-        return str(result)
+        return f"Status: OK\nResult: {_safe_eval(expression)}"
     except Exception as e:
-        return f"Error: {e}"
+        return (
+            f"Status: ERROR\nError: {e}\n"
+            "Next: Check syntax — use operators (+, -, *, /, **) "
+            "and functions sqrt(), pow(), abs(), round()."
+        )
 
 
 @tool
@@ -69,7 +92,10 @@ def word_analyzer(text: str) -> str:
     words = len(text.split())
     chars = len(text)
     sentences = text.count(".") + text.count("!") + text.count("?")
-    return f"Words: {words}, Characters: {chars}, Sentences: {sentences}"
+    return (
+        f"Status: OK\n"
+        f"Words: {words}\nCharacters: {chars}\nSentences: {sentences}"
+    )
 
 
 agent_tools = create_agent(
@@ -211,11 +237,19 @@ def search_docs(query: str) -> str:
     these topics. Do NOT use this for general knowledge questions."""
     docs = _retriever.invoke(query)
     if not docs:
-        return "No relevant documents found."
+        return (
+            "Status: NO_RESULTS\n"
+            "Summary: No documents matched the query.\n"
+            "Next: Try broader search terms or rephrase the question."
+        )
     results = []
     for i, doc in enumerate(docs, 1):
         results.append(f"[{i}] {doc.page_content}")
-    return "\n\n".join(results)
+    return (
+        f"Status: OK\n"
+        f"Summary: Found {len(docs)} relevant document(s).\n\n"
+        + "\n\n".join(results)
+    )
 
 
 agentic_rag = create_agent(

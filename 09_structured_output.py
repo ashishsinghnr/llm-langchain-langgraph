@@ -78,8 +78,7 @@ try:
 
         prompt = ChatPromptTemplate.from_messages([
             ("system",
-             "You are a movie review analyzer. Extract structured data "
-             "from the user's review."),
+             "Extract structured data from this movie review."),
             ("human", "{review}"),
         ])
 
@@ -112,8 +111,7 @@ try:
 
         prompt_team = ChatPromptTemplate.from_messages([
             ("system",
-             "You are an HR assistant. Extract the team information "
-             "from the description into a structured roster."),
+             "Extract team information into a structured roster."),
             ("human", "{description}"),
         ])
 

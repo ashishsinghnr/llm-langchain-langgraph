@@ -56,10 +56,9 @@ class SupportState(TypedDict):
 def classify_node(state: SupportState) -> dict:
     """Use the LLM to classify the user query into a category."""
     prompt = ChatPromptTemplate.from_template(
-        "Classify this customer query into exactly one category.\n"
-        "Categories: technical, billing, general\n\n"
+        "Classify into one category: technical, billing, general.\n\n"
         "Query: {query}\n\n"
-        "Respond with ONLY the category name, nothing else."
+        "Respond with ONLY the category name."
     )
     chain = prompt | llm | StrOutputParser()
     category = chain.invoke({"query": state["query"]}).strip().lower()
@@ -81,9 +80,7 @@ def technical_node(state: SupportState) -> dict:
     print("  [Router] → Technical specialist")
     return {
         "context": (
-            "You are a technical support specialist. "
-            "Focus on troubleshooting steps, system requirements, "
-            "and technical solutions. Be precise and methodical."
+            "Technical support specialist. Focus on troubleshooting and solutions. Be precise."
         )
     }
 
@@ -93,9 +90,7 @@ def billing_node(state: SupportState) -> dict:
     print("  [Router] → Billing specialist")
     return {
         "context": (
-            "You are a billing support specialist. "
-            "Focus on pricing, invoices, payment methods, and refunds. "
-            "Be empathetic and clear about policies."
+            "Billing specialist. Focus on pricing, invoices, and refunds. Be clear about policies."
         )
     }
 
@@ -105,9 +100,7 @@ def general_node(state: SupportState) -> dict:
     print("  [Router] → General support")
     return {
         "context": (
-            "You are a friendly general support agent. "
-            "Help with product info, features, and getting started. "
-            "Be welcoming and helpful."
+            "General support agent. Help with product info and getting started."
         )
     }
 

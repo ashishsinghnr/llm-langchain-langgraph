@@ -82,9 +82,7 @@ def generator_node(state: EmailState) -> dict:
         print(f"  [Generator] Revision #{iteration} (incorporating feedback)")
         prompt = ChatPromptTemplate.from_messages([
             ("system",
-             "You are a professional email writer. Revise the email below "
-             "based on the feedback provided. Keep the email concise (3-5 sentences), "
-             "professional, and clear.\n\n"
+             "Revise this email per the feedback. Keep to 3-5 sentences, professional.\n\n"
              "Previous draft:\n{draft}\n\n"
              "Feedback:\n{feedback}"),
             ("human", "Original request: {context}"),
@@ -100,9 +98,7 @@ def generator_node(state: EmailState) -> dict:
         print(f"  [Generator] Writing initial draft")
         prompt = ChatPromptTemplate.from_messages([
             ("system",
-             "You are a professional email writer. Write a concise email "
-             "(3-5 sentences) based on the user's request. Be professional, "
-             "clear, and direct. Include a subject line."),
+             "Write a professional email (3-5 sentences) with subject line. Be clear and direct."),
             ("human", "{context}"),
         ])
         chain = prompt | llm | StrOutputParser()
@@ -119,16 +115,14 @@ def evaluator_node(state: EmailState) -> dict:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "You are a strict email quality evaluator. Grade the email below on:\n"
-         "1. Professional tone (no slang, appropriate formality)\n"
-         "2. Clarity (clear purpose, no ambiguity)\n"
-         "3. Conciseness (3-5 sentences, not rambling)\n"
-         "4. Completeness (addresses the original request)\n"
-         "5. Has a subject line\n\n"
-         "If ALL criteria are met, grade as 'acceptable'.\n"
-         "If ANY criterion fails, grade as 'needs_improvement' and provide "
-         "specific, actionable feedback.\n\n"
-         "Original request: {context}"),
+         "Grade this email:\n"
+         "1. Professional tone\n"
+         "2. Clarity\n"
+         "3. Conciseness (3-5 sentences)\n"
+         "4. Completeness\n"
+         "5. Has subject line\n\n"
+         "Grade 'acceptable' if all pass, 'needs_improvement' with specific feedback if any fail.\n\n"
+         "Request: {context}"),
         ("human", "Email to evaluate:\n{draft}"),
     ])
 

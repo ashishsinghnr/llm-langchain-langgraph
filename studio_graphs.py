@@ -63,10 +63,7 @@ def _safe_eval(expression: str) -> str:
 
 @tool
 def calculate(expression: str) -> str:
-    """Evaluate a math expression and return the result.
-    Use this for any arithmetic: addition, subtraction, multiplication,
-    division, exponents, square roots, etc.
-    Examples: "2 + 2", "sqrt(144)", "15 * 3.14", "2 ** 10"
+    """Evaluate a math expression. Examples: "2 + 2", "sqrt(144)", "2 ** 10"
     """
     try:
         return f"Status: OK\nResult: {_safe_eval(expression)}"
@@ -123,10 +120,9 @@ class SupportState(TypedDict):
 
 def _classify_node(state: SupportState) -> dict:
     prompt = ChatPromptTemplate.from_template(
-        "Classify this customer query into exactly one category.\n"
-        "Categories: technical, billing, general\n\n"
+        "Classify into one category: technical, billing, general.\n\n"
         "Query: {query}\n\n"
-        "Respond with ONLY the category name, nothing else."
+        "Respond with ONLY the category name."
     )
     chain = prompt | llm | StrOutputParser()
     category = chain.invoke({"query": state["query"]}).strip().lower()
@@ -232,9 +228,7 @@ _retriever = _vector_store.as_retriever(search_kwargs={"k": 3})
 
 @tool
 def search_docs(query: str) -> str:
-    """Search the internal knowledge base about LangChain, RAG, agents,
-    embeddings, and LangGraph. Use this tool when the user asks about
-    these topics. Do NOT use this for general knowledge questions."""
+    """Search the knowledge base about LangChain, RAG, agents, embeddings, and LangGraph."""
     docs = _retriever.invoke(query)
     if not docs:
         return (
@@ -256,11 +250,8 @@ agentic_rag = create_agent(
     llm,
     tools=[search_docs],
     system_prompt=(
-        "You are a helpful assistant with access to a knowledge base about "
-        "LangChain, RAG, embeddings, agents, and LangGraph. "
-        "Use the search_docs tool when the user asks about these topics. "
-        "For general knowledge questions (math, geography, etc.), answer "
-        "directly without searching. Always cite which documents you used."
+        "You have a knowledge base on LangChain, RAG, embeddings, agents, and LangGraph. "
+        "Use search_docs for these topics; answer general questions directly. Cite sources."
     ),
 )
 
@@ -281,13 +272,9 @@ class OrderState(TypedDict):
 
 def _hitl_classify(state: OrderState) -> dict:
     prompt = ChatPromptTemplate.from_template(
-        "Classify this customer request into exactly one action.\n"
-        "Actions: status, refund, cancel\n\n"
-        "- status: checking order status, tracking, delivery info\n"
-        "- refund: requesting money back, refund, return\n"
-        "- cancel: cancelling an order\n\n"
+        "Classify into one action: status, refund, cancel.\n\n"
         "Request: {query}\n\n"
-        "Respond with ONLY the action name, nothing else."
+        "Respond with ONLY the action name."
     )
     chain = prompt | llm | StrOutputParser()
     action = chain.invoke({"query": state["query"]}).strip().lower()
@@ -315,11 +302,9 @@ def _hitl_execute(state: OrderState) -> dict:
         return {"response": f"Your {state['action']} request has been denied by a supervisor."}
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "You are a helpful customer support agent. Generate a brief, "
-         "professional response confirming the action.\n"
-         f"Action type: {state['action']}\n"
-         f"Approved: {state.get('approved', 'N/A')}\n"
-         "Keep it to 2-3 sentences."),
+         "Customer support agent. Confirm the action in 2-3 sentences.\n"
+         f"Action: {state['action']}\n"
+         f"Approved: {state.get('approved', 'N/A')}"),
         ("human", "{query}"),
     ])
     chain = prompt | llm | StrOutputParser()
@@ -371,9 +356,8 @@ class ReportState(TypedDict):
 def _orch_plan(state: ReportState) -> dict:
     structured_llm = llm.with_structured_output(ReportPlan)
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a research report planner. Given a topic, plan 3-4 sections "
-         "for a concise report. Each section should have a clear title and description."),
-        ("human", "Plan a report on: {topic}"),
+        ("system", "Plan 3-4 sections for a concise report. Each section: title + brief description."),
+        ("human", "Report topic: {topic}"),
     ])
     plan = (prompt | structured_llm).invoke({"topic": state["topic"]})
     return {"sections": plan.sections}
@@ -381,9 +365,8 @@ def _orch_plan(state: ReportState) -> dict:
 
 def _orch_worker(state: dict) -> dict:
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a research writer. Write a concise section for a report. "
-         "Keep it to 3-4 sentences. Be informative and factual."),
-        ("human", "Write a section titled '{title}'.\nIt should cover: {description}"),
+        ("system", "Write a concise report section. 3-4 sentences, factual."),
+        ("human", "Section: {title}\nCover: {description}"),
     ])
     content = (prompt | llm | StrOutputParser()).invoke({
         "title": state["title"], "description": state["description"],
@@ -394,8 +377,7 @@ def _orch_worker(state: dict) -> dict:
 def _orch_synthesize(state: ReportState) -> dict:
     sections_text = "\n\n".join(state["completed_sections"])
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a report editor. Combine the sections into a cohesive final report. "
-         "Add a brief introduction and conclusion. Output in markdown."),
+        ("system", "Combine these report sections into a cohesive report. Add brief intro and conclusion. Output markdown."),
         ("human", "Topic: {topic}\n\nSections:\n{sections}"),
     ])
     report = (prompt | llm | StrOutputParser()).invoke({
@@ -449,8 +431,7 @@ def _eval_generate(state: EmailState) -> dict:
     if state.get("feedback"):
         prompt = ChatPromptTemplate.from_messages([
             ("system",
-             "You are a professional email writer. Revise the email below based "
-             "on the feedback. Keep it concise (3-5 sentences), professional, clear.\n\n"
+             "Revise this email per the feedback. Keep to 3-5 sentences, professional.\n\n"
              "Previous draft:\n{draft}\n\nFeedback:\n{feedback}"),
             ("human", "Original request: {context}"),
         ])
@@ -460,8 +441,7 @@ def _eval_generate(state: EmailState) -> dict:
         })
     else:
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a professional email writer. Write a concise email "
-             "(3-5 sentences). Be professional, clear, direct. Include a subject line."),
+            ("system", "Write a professional email (3-5 sentences) with subject line. Be clear and direct."),
             ("human", "{context}"),
         ])
         draft = (prompt | llm_creative | StrOutputParser()).invoke({"context": state["context"]})
@@ -472,11 +452,11 @@ def _eval_evaluate(state: EmailState) -> dict:
     structured_eval = llm.with_structured_output(Evaluation)
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "You are a strict email quality evaluator. Grade on:\n"
+         "Grade this email:\n"
          "1. Professional tone\n2. Clarity\n3. Conciseness (3-5 sentences)\n"
-         "4. Completeness\n5. Has a subject line\n\n"
-         "If ALL criteria met → 'acceptable'. If ANY fails → 'needs_improvement'.\n\n"
-         "Original request: {context}"),
+         "4. Completeness\n5. Has subject line\n\n"
+         "Grade 'acceptable' if all pass, 'needs_improvement' with specific feedback if any fail.\n\n"
+         "Request: {context}"),
         ("human", "Email to evaluate:\n{draft}"),
     ])
     result = (prompt | structured_eval).invoke({

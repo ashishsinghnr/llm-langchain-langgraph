@@ -26,8 +26,7 @@ llm = get_google_llm(temperature=0.7)
 # ---------------------------------------------------------------------------
 prompt = ChatPromptTemplate.from_messages([
     ("system",
-     "You are a friendly AI tutor. Keep answers concise (2-3 sentences). "
-     "Reference earlier parts of the conversation when relevant."),
+     "You are a friendly AI tutor. Keep answers to 2-3 sentences."),
     MessagesPlaceholder(variable_name="history"),
     ("human", "{input}"),
 ])

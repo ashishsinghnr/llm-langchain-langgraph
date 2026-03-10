@@ -104,9 +104,7 @@ research_agent = create_agent(
     llm,
     tools=[search_knowledge, get_statistics],
     system_prompt=(
-        "You are a research specialist. Your job is to gather comprehensive "
-        "information about topics using your tools. Search for knowledge AND "
-        "statistics. Return a detailed, factual summary."
+        "Research specialist. Use your tools to gather knowledge AND statistics. Return a factual summary."
     ),
 )
 
@@ -114,9 +112,7 @@ writer_agent = create_agent(
     llm,
     tools=[format_as_blog],
     system_prompt=(
-        "You are a professional writer. Take the research provided and "
-        "create well-structured, engaging content. Use the format_as_blog "
-        "tool to produce the final output."
+        "Professional writer. Create engaging content from the research. Use format_as_blog for final output."
     ),
 )
 
@@ -127,11 +123,8 @@ writer_agent = create_agent(
 
 supervisor_prompt = ChatPromptTemplate.from_messages([
     ("system",
-     "You are a project supervisor coordinating a research agent and a "
-     "writer agent. Given a user request, decide the plan:\n"
-     "1. First, describe what the research agent should investigate\n"
-     "2. Then, describe what the writer agent should produce\n"
-     "Keep your response as two clear sections: RESEARCH_TASK and WRITER_TASK."),
+     "Plan work for a research agent and writer agent.\n"
+     "Respond in two sections: RESEARCH_TASK and WRITER_TASK."),
     ("human", "{input}"),
 ])
 

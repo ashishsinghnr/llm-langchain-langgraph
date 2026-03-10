@@ -60,13 +60,9 @@ class OrderState(TypedDict):
 def classify_node(state: OrderState) -> dict:
     """Use the LLM to classify the user's request into an action type."""
     prompt = ChatPromptTemplate.from_template(
-        "Classify this customer request into exactly one action.\n"
-        "Actions: status, refund, cancel\n\n"
-        "- status: checking order status, tracking, delivery info\n"
-        "- refund: requesting money back, refund, return\n"
-        "- cancel: cancelling an order\n\n"
+        "Classify into one action: status, refund, cancel.\n\n"
         "Request: {query}\n\n"
-        "Respond with ONLY the action name, nothing else."
+        "Respond with ONLY the action name."
     )
     chain = prompt | llm | StrOutputParser()
     action = chain.invoke({"query": state["query"]}).strip().lower()
@@ -112,11 +108,9 @@ def execute_node(state: OrderState) -> dict:
     else:
         prompt = ChatPromptTemplate.from_messages([
             ("system",
-             "You are a helpful customer support agent. "
-             "Generate a brief, professional response confirming the action.\n"
-             f"Action type: {state['action']}\n"
-             f"Approved: {state.get('approved', 'N/A (non-sensitive)')}\n"
-             "Keep it to 2-3 sentences."),
+             "Customer support agent. Confirm the action in 2-3 sentences.\n"
+             f"Action: {state['action']}\n"
+             f"Approved: {state.get('approved', 'N/A')}"),
             ("human", "{query}"),
         ])
         chain = prompt | llm | StrOutputParser()

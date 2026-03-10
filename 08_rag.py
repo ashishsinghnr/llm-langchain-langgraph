@@ -99,9 +99,7 @@ print(f"  Vector store ready with {len(chunks)} embedded chunks")
 
 rag_prompt = ChatPromptTemplate.from_messages([
     ("system",
-     "You are a helpful assistant. Answer the question based ONLY on the "
-     "provided context. If the context doesn't contain the answer, say "
-     "\"I don't have enough information to answer that.\"\n\n"
+     "Answer based ONLY on the context below. If insufficient, say so.\n\n"
      "Context:\n{context}"),
     ("human", "{question}"),
 ])

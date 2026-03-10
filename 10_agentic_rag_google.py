@@ -90,9 +90,7 @@ print(f"  Ready — {len(chunks)} chunks indexed\n")
 
 @tool
 def search_docs(query: str) -> str:
-    """Search the internal knowledge base about LangChain, RAG, agents,
-    embeddings, and LangGraph. Use this tool when the user asks about
-    these topics. Do NOT use this for general knowledge questions."""
+    """Search the knowledge base about LangChain, RAG, agents, embeddings, and LangGraph."""
     docs = retriever.invoke(query)
     if not docs:
         return (
@@ -118,11 +116,8 @@ agent = create_agent(
     llm,
     tools=[search_docs],
     system_prompt=(
-        "You are a helpful assistant with access to a knowledge base about "
-        "LangChain, RAG, embeddings, agents, and LangGraph. "
-        "Use the search_docs tool when the user asks about these topics. "
-        "For general knowledge questions (math, geography, etc.), answer "
-        "directly without searching. Always cite which documents you used."
+        "You have a knowledge base on LangChain, RAG, embeddings, agents, and LangGraph. "
+        "Use search_docs for these topics; answer general questions directly. Cite sources."
     ),
 )
 

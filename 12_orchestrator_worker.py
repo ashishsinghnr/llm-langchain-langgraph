@@ -81,9 +81,7 @@ def orchestrator_node(state: ReportState) -> dict:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "You are a research report planner. Given a topic, plan 3-4 sections "
-         "for a concise report. Each section should have a clear title and a "
-         "brief description of what it should cover. Keep it focused."),
+         "Plan 3-4 sections for a concise report. Each section: title + brief description."),
         ("human", "Plan a report on: {topic}"),
     ])
 
@@ -104,11 +102,9 @@ def worker_node(state: dict) -> dict:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "You are a research writer. Write a concise section for a report. "
-         "Keep it to 3-4 sentences. Be informative and factual."),
+         "Write a concise report section. 3-4 sentences, factual."),
         ("human",
-         "Write a section titled '{title}'.\n"
-         "It should cover: {description}"),
+         "Section: {title}\nCover: {description}"),
     ])
 
     chain = prompt | llm | StrOutputParser()
@@ -126,10 +122,7 @@ def synthesizer_node(state: ReportState) -> dict:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "You are a report editor. You are given individual sections of a report. "
-         "Combine them into a cohesive final report. Add a brief introduction and "
-         "conclusion. Keep the section content mostly intact but ensure smooth "
-         "transitions. Output the final report in markdown."),
+         "Combine these report sections into a cohesive report. Add brief intro and conclusion. Output markdown."),
         ("human",
          "Topic: {topic}\n\n"
          "Sections:\n{sections}"),

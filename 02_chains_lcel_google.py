@@ -56,7 +56,7 @@ try:
 
         json_prompt = ChatPromptTemplate.from_messages([
             ("system",
-             "You are a helpful assistant. Always respond with valid JSON only, no markdown."),
+             "Respond with valid JSON only, no markdown."),
             ("human",
              "Give me 3 {difficulty} quiz questions about {subject}. "
              "Return a JSON array of objects with keys: question, options (array of 4), answer."),

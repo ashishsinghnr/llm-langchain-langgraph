@@ -58,10 +58,7 @@ def _safe_eval(expression: str) -> str:
 
 @tool
 def calculate(expression: str) -> str:
-    """Evaluate a math expression and return the result.
-    Use this for any arithmetic: addition, subtraction, multiplication,
-    division, exponents, square roots, etc.
-    Examples: "2 + 2", "sqrt(144)", "15 * 3.14", "2 ** 10"
+    """Evaluate a math expression. Examples: "2 + 2", "sqrt(144)", "2 ** 10"
     """
     try:
         return f"Status: OK\nResult: {_safe_eval(expression)}"
